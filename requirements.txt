@@ -1,0 +1,4 @@
+gradio==6.22.0
+yfinance
+openai
+python-dotenv
