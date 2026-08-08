@@ -1,15 +1,3 @@
----
-title: GroqStockScriptAI
-emoji: 📈
-colorFrom: blue
-colorTo: green
-sdk: gradio
-sdk_version: 6.22.0
-app_file: app.py
-pinned: false
-license: mit
----
-
 # GroqStockScriptAI
 
 An AI-powered stock research dashboard. Select a stock from a curated list of NSE and US tickers, and get an AI-generated market summary built from live data pulled via `yfinance` and analyzed by Llama 3.3 70B (served via the Groq API).
@@ -42,6 +30,14 @@ Then run:
 ```bash
 python app.py
 ```
+
+## Deployment
+
+Deployed on [Render](https://render.com) as a free web service, connected directly to this GitHub repo. Render auto-redeploys on every push to `main`.
+
+- **Build command**: `pip install -r requirements.txt`
+- **Start command**: `python app.py`
+- **Environment variable**: `GROQ_API_KEY` set via Render's dashboard (Environment tab), never committed to source
 
 ## Disclaimer
 

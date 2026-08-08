@@ -1,3 +1,5 @@
+import os
+
 import gradio as gr
 from src.stock_data import get_stock_data
 from src.llm_client import generate_analysis
@@ -38,4 +40,4 @@ with gr.Blocks(title="GroqStockScriptAI") as demo:
     ticker_input.change(fn=analyze_stock, inputs=[ticker_input], outputs=[output_box])
 
 if __name__ == "__main__":
-    demo.launch(share=True)
+    demo.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)))

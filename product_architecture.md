@@ -30,7 +30,7 @@ GroqStockScriptAI is an open-source application that helps users summarize a sto
 
 | Module | Responsibility |
 |---|---|
-| `app.py` | UI layout, event wiring, entry point (Hugging Face Spaces default) |
+| `app.py` | UI layout, event wiring, entry point; also binds to Render's dynamic `PORT`/host for deployment |
 | `src/stock_data.py` | Pure data-ingestion layer — calls yfinance, returns a structured dict, isolated from UI/LLM concerns |
 | `src/llm_client.py` | LLM client setup and prompt construction — isolated so the model/provider can be swapped independently of the rest of the app |
 
@@ -42,7 +42,8 @@ Keeping these three concerns in separate files means each can be tested, debugge
 - **Low temperature (0.2)**: Chosen to minimize creative variance and keep the model's output closely grounded in the numeric data provided, rather than generating overly speculative language.
 - **Prompt guardrail against fabrication**: yfinance provides only numeric data (price, volume, P/E, recent history) — no news or event context. The system prompt explicitly instructs the model to reason only from the numeric trend provided and avoid asserting specific real-world causes (e.g., earnings, news events) it was never given. This was a deliberate choice to protect output credibility, since an LLM without this guardrail will readily fabricate plausible-sounding but false causes.
 - **Curated stock list instead of free-text ticker input**: Rather than accepting arbitrary ticker strings (which requires validation, exchange-suffix correction, and error handling for invalid tickers), the app restricts input to a hardcoded dropdown of known-good tickers (5 NSE + 4 US). This eliminates an entire class of input-validation problems and was a deliberate scope decision to prioritize a working, reliable demo over open-ended input handling.
-- **Environment-variable credential handling**: `GROQ_API_KEY` is loaded via `python-dotenv` from a local `.env` file (excluded from git via `.gitignore`) and read through `os.getenv`, never hardcoded. `.env.example` documents the required variable without exposing a real value.
+- **Environment-variable credential handling**: `GROQ_API_KEY` is loaded via `python-dotenv` from a local `.env` file (excluded from git via `.gitignore`) and read through `os.getenv`, never hardcoded. `.env.example` documents the required variable without exposing a real value. In deployment, the same variable is set via Render's Environment Variables dashboard.
+- **Dynamic host/port binding for deployment**: `demo.launch()` binds to `server_name="0.0.0.0"` and reads `server_port` from the `PORT` environment variable (falling back to `7860` locally). Cloud hosts like Render assign the listening port dynamically at runtime, so the app must read it rather than hardcode a port.
 
 ## Tech Stack
 
@@ -51,8 +52,8 @@ Keeping these three concerns in separate files means each can be tested, debugge
 | UI | Gradio (`Blocks` declarative layout) |
 | Data ingestion | yfinance |
 | Inference | Groq Cloud API — Llama 3.3 70B (via OpenAI-compatible client) |
-| Secrets | python-dotenv (local), Hugging Face Repository Secrets (deployed) |
-| Deployment | Hugging Face Spaces |
+| Secrets | python-dotenv (local), Render Environment Variables (deployed) |
+| Deployment | Render (free web service tier) |
 
 ## Known Limitations
 

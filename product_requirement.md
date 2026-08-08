@@ -16,7 +16,7 @@ GroqStockScriptAI is a financial research dashboard that demonstrates practical 
                                                                           [Gradio App UI]
                                                                                     │
                                                                                     ▼
-                                                                      [Hugging Face Spaces (Live Hosting)]
+                                                                      [Render (Live Hosting)]
 ```
 
 ------------------------------
@@ -28,12 +28,12 @@ GroqStockScriptAI is a financial research dashboard that demonstrates practical 
 * User Interface: Gradio (`gr.Blocks()` declarative layout)
 * Inference Engine: Groq Cloud API (`llama-3.3-70b-versatile`, accessed via an OpenAI-compatible client, low temperature for factual consistency)
 * Data Ingestion Layer: `yfinance` Python library (live NSE and US market data)
-* Deployment Environment: Hugging Face Spaces (free, permanent cloud hosting with encrypted secret injection)
+* Deployment Environment: Render (free, permanent cloud hosting with encrypted secret injection)
 
 ### Legal, Security & IP Compliance
 
 * No proprietary or confidential data is used — only public market data via `yfinance`.
-* Credentials are never hardcoded; all secrets are read from environment variables and injected via Hugging Face Repository Secrets in production.
+* Credentials are never hardcoded; all secrets are read from environment variables and injected via Render's Environment Variables dashboard in production.
 * Open Source Licensing: MIT License, with a non-affiliation disclaimer in `README.md`.
 
 ------------------------------
@@ -46,7 +46,7 @@ GroqStockScriptAI is a financial research dashboard that demonstrates practical 
 
 **Phase 3: Cloud Security & Configuration** — Abstract all credentials via environment variables (`python-dotenv` locally), generate `requirements.txt`, and enforce a strict `.gitignore` to prevent accidental secret exposure.
 
-**Phase 4: Distribution** — Publish to GitHub, deploy to Hugging Face Spaces with the Groq API key stored as a Repository Secret, and document the project via `product_architecture.md` and `README.md`.
+**Phase 4: Distribution** — Publish to GitHub, deploy to Render with the Groq API key stored as an environment variable, and document the project via `product_architecture.md` and `README.md`.
 
 ------------------------------
 
@@ -55,5 +55,5 @@ GroqStockScriptAI is a financial research dashboard that demonstrates practical 
 | Channel | Purpose |
 |---|---|
 | GitHub | Source-of-truth repository showcasing code and documentation |
-| Hugging Face Spaces | Live, permanently hosted demo |
+| Render | Live, permanently hosted demo |
 | LinkedIn / Medium / Substack | Articles explaining the build process and architecture decisions (to be linked from the app once published) |
