@@ -29,6 +29,8 @@
 
 **Alternatives considered**: Hosted embedding API from the start — rejected for now in favor of testing the local approach first, since the actual failure mode (build failure vs. runtime OOM vs. works fine) isn't known until tested against Render directly. This decision may be revisited based on real deployment results — if so, that update will be logged as an addendum below, not a silent change.
 
+**Addendum (post-deployment)**: The local `sentence-transformers` approach was tested on Render's free tier and failed — the process was killed during startup (exit code 137, an OS out-of-memory kill via SIGKILL) while loading `torch`/the embedding model, before the app ever bound a port. This confirmed the predicted risk. Switched to `HuggingFaceEndpointEmbeddings` (Hugging Face's hosted Inference API) instead of `HuggingFaceEmbeddings` (local) — same underlying model (`all-MiniLM-L6-v2`), but embedding computation now happens on Hugging Face's servers via an API call, removing the local `torch` dependency entirely. This requires a new secret, `HF_TOKEN`, handled the same way as `GROQ_API_KEY` (environment variable, never committed).
+
 ---
 
 ## Decision 3: Vector store — FAISS vs. Chroma

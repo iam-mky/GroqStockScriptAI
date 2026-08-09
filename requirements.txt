@@ -7,4 +7,3 @@ langchain-text-splitters
 faiss-cpu
 langchain-community
 langchain-huggingface
-sentence-transformers

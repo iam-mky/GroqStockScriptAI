@@ -1,6 +1,8 @@
+import os
+
 from langchain_community.vectorstores import FAISS
 from langchain_community.vectorstores.utils import DistanceStrategy
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_core.documents import Document
 
 
@@ -13,11 +15,13 @@ def initialize_vector_store(raw_chunks: list[dict]) -> FAISS :
     document = [Document(page_content=chunk["text"], metadata=chunk["metadata"])
                 for chunk in raw_chunks
             ]
-    # Load an open source embedding model
-    print('Loading embedding model "all-MiniLM-L6-v2"..')
-    embeddings = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2",
-        encode_kwargs={"normalize_embeddings": True},
+    # Use Hugging Face's hosted Inference API for embeddings instead of loading
+    # the model locally — avoids the torch/sentence-transformers memory footprint
+    # that caused an OOM kill (exit 137) on Render's free tier.
+    print('Calling hosted embedding model "all-MiniLM-L6-v2" via HF Inference API..')
+    embeddings = HuggingFaceEndpointEmbeddings(
+        model="sentence-transformers/all-MiniLM-L6-v2",
+        huggingfacehub_api_token=os.getenv("HF_TOKEN"),
     )
 
     # Generate embeddgins and injest into the in-memory FAISS database

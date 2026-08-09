@@ -14,7 +14,20 @@ Write this manually as you build, in your own words. This is your source materia
 
 ## Step 2: Embeddings
 
-<!-- Which approach did I actually end up using (local sentence-transformers or hosted API)? Did Render's free tier handle it, or did I have to pivot? What happened when I tried? -->
+Started with local `sentence-transformers` (`all-MiniLM-L6-v2`) via LangChain's `HuggingFaceEmbeddings`, per the original ADR decision — deliberately chosen to test locally-first rather than assume it would fail.
+
+Deployed to Render's free tier staging service. It crashed on every deploy:
+
+```
+No open ports detected, continuing to scan...
+Exited with status 137
+```
+
+Exit code 137 = killed by SIGKILL, almost always Render's out-of-memory killer. The app was dying *during startup*, while loading the embedding model — before it ever reached the line that starts the Gradio server (which is exactly why "no open ports detected" showed up: the app never got that far). `sentence-transformers` pulls in `torch`, which is a heavy dependency, and Render's free tier caps around 512MB RAM — not enough headroom.
+
+This was the exact risk flagged in the ADR before writing any code, with an explicit fallback already planned: switch to a hosted embedding API if local didn't fit. Swapped `HuggingFaceEmbeddings` for `HuggingFaceEndpointEmbeddings` — same model, but the embedding computation now runs on Hugging Face's hosted Inference API instead of loading the model locally. Removed `sentence-transformers` from `requirements.txt` entirely, added a new `HF_TOKEN` secret (handled the same way as `GROQ_API_KEY` — environment variable, never committed).
+
+**Takeaway**: the fix was fast because the risk was already written down and reasoned about in advance, with a fallback plan ready to execute — not because the bug was easy. Writing the ADR before building turned a confusing crash into a five-minute diagnosis.
 
 ## Step 3: Building the vector index
 
