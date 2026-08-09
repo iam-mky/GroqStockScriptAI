@@ -1,58 +1,71 @@
-# Technical Learning Log — "Ask the Filing" (RAG Extension)
-
-Write this manually as you build, in your own words. This is your source material for a future LinkedIn post/article — capture what you actually did, what broke, what you learned, and why you made each call. Don't skip the messy parts; those are the most useful ones to write about later.
-
----
+# Building "Ask the Filing": A RAG Extension to GroqStockScriptAI
 
 ## What I set out to build
 
-<!-- One or two sentences: what is this feature, why did I want to build it -->
+GroqStockScriptAI already gave users an AI-generated summary of a stock's recent price and volume behavior. I wanted to go one level deeper: let a user ask a real question — "what did management say about margins this quarter?" — and get an answer grounded in an actual company document, not the model's general knowledge. That's a fundamentally different problem from the original feature. It's not "summarize this data," it's "find the right needle in a document, and prove where you found it." That's what RAG (Retrieval-Augmented Generation) is for, and this was my first hands-on build of one.
 
-## Step 1: Loading and chunking the PDFs
+The scope was deliberately narrow: one company (Reliance Industries), two documents (the latest quarterly concall transcript and investor presentation), answers grounded strictly in those documents, with a citation back to the source page.
 
-<!-- What did loader.py end up doing? What did I learn about PDF text extraction (e.g., messy text, page breaks, tables)? -->
+## Step 1: Turning PDFs into searchable pieces
 
-## Step 2: Embeddings
+A PDF isn't something an AI model can search directly — it first has to become small, comparable pieces of text. `loader.py` reads each PDF page by page, and splits each page's text into chunks of 500 characters, with a 50-character overlap between consecutive chunks.
 
-Started with local `sentence-transformers` (`all-MiniLM-L6-v2`) via LangChain's `HuggingFaceEmbeddings`, per the original ADR decision — deliberately chosen to test locally-first rather than assume it would fail.
+The overlap isn't a nice-to-have. A fact or sentence sitting right at a chunk boundary would otherwise get split in half — half the meaning ends up in one chunk, half in the next, and neither chunk alone captures it well. The 50-character overlap means boundary content shows up whole in at least one chunk.
 
-Deployed to Render's free tier staging service. It crashed on every deploy:
+Since Render's free hosting tier has no persistent disk, this loading-and-chunking step runs fresh every time the app starts — a few seconds of work, traded for zero infrastructure to maintain.
+
+## Step 2: Turning text into vectors — and hitting a real production failure
+
+Each chunk of text becomes a numerical vector — an "embedding" — via an embedding model, so that a user's question can later be compared mathematically against every chunk to find the closest matches.
+
+I started with `sentence-transformers` running locally, per my own architecture decision log: test the simplest approach first, and only pivot if it actually failed. It failed. On Render's free tier, the app crashed on every deploy with:
 
 ```
 No open ports detected, continuing to scan...
 Exited with status 137
 ```
 
-Exit code 137 = killed by SIGKILL, almost always Render's out-of-memory killer. The app was dying *during startup*, while loading the embedding model — before it ever reached the line that starts the Gradio server (which is exactly why "no open ports detected" showed up: the app never got that far). `sentence-transformers` pulls in `torch`, which is a heavy dependency, and Render's free tier caps around 512MB RAM — not enough headroom.
+Exit code 137 means the operating system killed the process with SIGKILL — almost always an out-of-memory kill. The app never even reached the point of starting its own web server ("no open ports detected" because the app died before it got that far). The culprit: `sentence-transformers` depends on `torch`, a large library, and Render's free tier caps memory around 512MB — nowhere near enough room to load it alongside everything else.
 
-This was the exact risk flagged in the ADR before writing any code, with an explicit fallback already planned: switch to a hosted embedding API if local didn't fit. Swapped `HuggingFaceEmbeddings` for `HuggingFaceEndpointEmbeddings` — same model, but the embedding computation now runs on Hugging Face's hosted Inference API instead of loading the model locally. Removed `sentence-transformers` from `requirements.txt` entirely, added a new `HF_TOKEN` secret (handled the same way as `GROQ_API_KEY` — environment variable, never committed).
+The fix: instead of loading the embedding model locally, I switched to Hugging Face's **hosted Inference API** (`HuggingFaceEndpointEmbeddings`). Same model, same output — but the actual computation now happens on Hugging Face's servers, and my app just sends text and receives vectors back over the network. No `torch`, no local model weights, a fraction of the memory footprint.
 
-**Takeaway**: the fix was fast because the risk was already written down and reasoned about in advance, with a fallback plan ready to execute — not because the bug was easy. Writing the ADR before building turned a confusing crash into a five-minute diagnosis.
+The real lesson here isn't about embeddings specifically — it's that **I'd already written down this exact risk before building anything**, with a fallback already planned. That's why the fix took minutes once the crash happened, instead of an open-ended debugging session. Naming your assumptions in advance turns a scary production crash into a checklist.
 
-## Step 3: Building the vector index
+## Step 3: Where the vectors live — choosing FAISS over Chroma
 
-<!-- FAISS or Chroma — which did I pick and why, in my own words? What surprised me about how vector search actually works? -->
+Once you have embeddings, you need somewhere to store and search them — a vector store. I chose FAISS over the more commonly-recommended Chroma specifically because of the same memory constraint from Step 2: Chroma pulls in extra dependencies (a SQLite backend, an ONNX runtime) that add weight I couldn't afford. FAISS, used in pure in-memory mode, does exactly what this project needs — fast similarity search over a small, session-lived set of vectors — without the extra baggage.
 
-## Step 4: Retrieval
+This is a good example of a decision that looks small in the code but is really about *fitting the tool to the constraint*, not "which vector store is objectively best."
 
-<!-- Did top-3 chunks work well? Any cases where the right answer wasn't retrieved? What would I tune if I had more time? -->
+## Step 4: Retrieval — turning a question into the right chunks
 
-## Step 5: Grounded answers + citations
+When a user asks a question, it goes through the same embedding process as the document chunks did, and FAISS finds the top 3 chunks whose vectors are closest to the question's vector — meaning, semantically, the most relevant pieces of the document.
 
-<!-- How did I get the model to cite its source? Did it ever try to answer from outside the documents despite instructions — how did I catch/fix that? -->
+In testing, top-3 retrieval gave sensible results for straightforward questions. Where this would need more attention in a larger version of this project: questions that need information spread across many chunks (retrieving only 3 might miss part of the picture), and questions phrased very differently from how the document phrases the same idea (embedding similarity isn't perfect at bridging very different wording). Neither showed up as a problem at this project's scale — one company, two documents — but it's exactly the kind of thing that would need tuning (a higher `k`, or better chunking) if this were extended to many documents.
+
+## Step 5: How grounded answers and citations actually happen
+
+This is the part that's easy to wave your hands at, so here it is concretely: there's no separate "citation system." Grounding and citation both come from **what you put in the prompt** and **what metadata you carry alongside each chunk**.
+
+Every chunk stored in the vector index carries metadata — which file it came from, which page. When a question comes in, the retrieved chunks (text + metadata) get formatted into the prompt sent to the LLM, with each chunk explicitly labeled: `[Source: <file>, Page <page>]`. The system prompt then instructs the model to answer *using only what's in that context*, and to say clearly when the answer isn't covered — rather than falling back on outside knowledge. The model doesn't have any built-in notion of "citing sources" — it's simply been given the source labels as part of its input, and told to reference them.
+
+This mirrors a lesson from the earlier stock-summary feature: an LLM will happily sound confident about things it doesn't actually know, unless you explicitly constrain what it's allowed to claim. Here, the constraint is "answer only from this labeled context" instead of "don't invent stock news" — same underlying principle, applied to a new mechanism.
 
 ## Step 6: Wiring it into the existing app
 
-<!-- Any friction integrating this into the v1 Gradio app? -->
+This part was genuinely smooth — the whole point of keeping v1's `app.py`, `stock_data.py`, and `llm_client.py` untouched was so that adding a new Gradio tab and a new `rag/` package wouldn't risk breaking the working stock-analysis feature. The vector index gets built once, when the app starts, and both features run side by side.
 
 ## Step 7: Deploying to Render
 
-<!-- Did it work first try? What broke, if anything (memory, build time, dependencies)? -->
+The first deploy failed exactly as described in Step 2 — memory, not code, was the problem. After switching to the hosted embedding API, the app deployed cleanly: no local model to load, a much smaller memory footprint, and a fast startup.
 
 ## What I'd do differently next time
 
-<!-- Honest reflection — this is often the most valuable section for a reader -->
+I'd test the memory-heavy dependency against the actual free-tier hosting environment *before* building the rest of the pipeline around it, rather than after. The architecture decision log correctly predicted the risk, but I still built the full local pipeline first and only discovered the failure at deploy time. Testing that one risky piece in isolation, early, would have caught this a step sooner.
 
 ## Key takeaways (for the LinkedIn/article version)
 
-<!-- 2-4 bullet points, the "if you only read one thing" summary -->
+- RAG isn't magic — it's chunking, embedding, similarity search, and a carefully constrained prompt, in that order. Understanding each step individually makes the whole thing far less mysterious.
+- Citations in a RAG system aren't a separate feature — they come from carrying metadata alongside your data from the very first step, and telling the model to use it.
+- Free-tier cloud hosting has real constraints that don't show up in local development — writing down your risky assumptions before you build (not just once something breaks) is what makes debugging fast instead of stressful.
+- The same anti-hallucination principle applies everywhere you use an LLM: it will confidently answer beyond what it actually knows unless you explicitly constrain what it's allowed to claim.
