@@ -13,8 +13,8 @@ def get_stock_data(ticker_symbol:str):
         # Pull asset information metrics
         info = stock.info
         
-        # Pull 1-year daily historical trend data
-        history = stock.history(period="1y")
+        # Pull 6 month daily historical trend data
+        history = stock.history(period="6mo")
         
         # Extract recent trend data structure if available
         recent_history = []
@@ -38,8 +38,9 @@ def get_stock_data(ticker_symbol:str):
             "recent_history": recent_history
         }
         
-    except Exception:
+    except Exception as e:
         # Graceful failure return per "don't over-validate, just catch failures" design
+        print(f"Error fetching data for {ticker_symbol}: {e}")
         return None
 
 

@@ -2,3 +2,8 @@ gradio==6.22.0
 yfinance
 openai
 python-dotenv
+pypdf
+langchain-text-splitters
+faiss-cpu
+langchain-community
+langchain-huggingface
