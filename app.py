@@ -12,11 +12,16 @@ RELIANCE_PDF_PATHS = [
     "data/Reliance/QuarterlyResultPPT.pdf",
 ]
 
-# Build the in-memory RAG index once at startup (no persistent disk dependency)
-print("Building RAG index for Ask the Filing...")
-_rag_chunks = loadpdf_and_chunks(RELIANCE_PDF_PATHS)
-_vector_store = initialize_vector_store(_rag_chunks)
-print("RAG index ready.")
+# Build the in-memory RAG index once at startup (no persistent disk dependency).
+# Wrapped so a RAG failure doesn't take down the unrelated Stock Analysis feature.
+_vector_store = None
+try:
+    print("Building RAG index for Ask the Filing...")
+    _rag_chunks = loadpdf_and_chunks(RELIANCE_PDF_PATHS)
+    _vector_store = initialize_vector_store(_rag_chunks)
+    print("RAG index ready.")
+except Exception as e:
+    print(f"Error building RAG index at startup — Ask the Filing will be unavailable: {e}")
 
 # Hardcoded stock universe: 5 NSE + 4 US tickers (display name -> yfinance ticker)
 STOCK_OPTIONS = {
@@ -41,6 +46,9 @@ def analyze_stock(ticker: str) -> str:
 
 
 def ask_filing(question: str) -> str:
+    if _vector_store is None:
+        return "Ask the Filing is temporarily unavailable. Please try again later."
+
     result = answer_question(_vector_store, question)
 
     sources_text = "\n".join(

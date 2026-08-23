@@ -38,8 +38,9 @@ def get_stock_data(ticker_symbol:str):
             "recent_history": recent_history
         }
         
-    except Exception:
+    except Exception as e:
         # Graceful failure return per "don't over-validate, just catch failures" design
+        print(f"Error fetching data for {ticker_symbol}: {e}")
         return None
 
 

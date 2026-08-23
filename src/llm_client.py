@@ -19,12 +19,16 @@ system_prompt = (
 )
 
 def generate_analysis(stock_data:dict):
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages= [
-            {"role":"system", "content": system_prompt},
-            {"role":"user", "content": f"Analyze the stock: {stock_data}"}
-        ],
-        temperature= 0.2
-    )
-    return response.choices[0].message.content
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages= [
+                {"role":"system", "content": system_prompt},
+                {"role":"user", "content": f"Analyze the stock: {stock_data}"}
+            ],
+            temperature= 0.2
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"Error calling Groq API for stock analysis: {e}")
+        return "Sorry, the analysis could not be generated right now. Please try again shortly."

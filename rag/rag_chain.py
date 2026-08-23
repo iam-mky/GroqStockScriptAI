@@ -25,16 +25,22 @@ def answer_question(vector_store, question: str, k: int = 3) -> dict:
     retrieved_chunks = retrieve_relevant_chunks(vector_store, question, k=k)
     context = _format_context(retrieved_chunks)
 
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": RAG_SYSTEM_PROMPT},
-            {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
-        ],
-        temperature=0.1,
-    )
-
-    return {
-        "answer": response.choices[0].message.content,
-        "sources": [chunk["metadata"] for chunk in retrieved_chunks],
-    }
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": RAG_SYSTEM_PROMPT},
+                {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
+            ],
+            temperature=0.1,
+        )
+        return {
+            "answer": response.choices[0].message.content,
+            "sources": [chunk["metadata"] for chunk in retrieved_chunks],
+        }
+    except Exception as e:
+        print(f"Error calling Groq API for Ask the Filing: {e}")
+        return {
+            "answer": "Sorry, the answer could not be generated right now. Please try again shortly.",
+            "sources": [],
+        }
