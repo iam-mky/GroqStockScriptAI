@@ -28,12 +28,12 @@ Stuff chunks into prompt → Groq LLM answers → Return answer + source citatio
 
 ## 4. Technical Stack (additions to v1)
 
-* PDF loading: `pypdf` (or LangChain's `PyPDFLoader`)
+* PDF loading: `pypdf`
 * Chunking: LangChain's `RecursiveCharacterTextSplitter`, 500 char chunks, 50 char overlap
-* Embeddings: `sentence-transformers` (`all-MiniLM-L6-v2`), local — pivot to a hosted embedding API if Render's free tier can't handle the memory footprint
-* Vector store: in-memory (FAISS or Chroma — decision recorded in the ADR)
+* Embeddings: `all-MiniLM-L6-v2`, via Hugging Face's hosted Inference API (`HuggingFaceEndpointEmbeddings`) — pivoted from a local `sentence-transformers` model after that approach caused an out-of-memory crash on Render's free tier (see ADR-001, Decision 2, addendum)
+* Vector store: FAISS, in-memory, cosine similarity (see ADR-001, Decision 3)
 * LLM: existing Groq (Llama 3.3) client from v1, reused as-is
-* UI: extend the existing Gradio app with a new RAG mode/tab
+* UI: extend the existing Gradio app with a new "Ask the Filing" tab
 
 ## 5. Constraints
 

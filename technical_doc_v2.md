@@ -63,7 +63,7 @@ The first deploy failed exactly as described in Step 2 — memory, not code, was
 
 I'd test the memory-heavy dependency against the actual free-tier hosting environment *before* building the rest of the pipeline around it, rather than after. The architecture decision log correctly predicted the risk, but I still built the full local pipeline first and only discovered the failure at deploy time. Testing that one risky piece in isolation, early, would have caught this a step sooner.
 
-## Key takeaways (for the LinkedIn/article version)
+## Key takeaways
 
 - RAG isn't magic — it's chunking, embedding, similarity search, and a carefully constrained prompt, in that order. Understanding each step individually makes the whole thing far less mysterious.
 - Citations in a RAG system aren't a separate feature — they come from carrying metadata alongside your data from the very first step, and telling the model to use it.

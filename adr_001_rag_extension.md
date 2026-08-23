@@ -1,6 +1,5 @@
 # ADR-001: "Ask the Filing" RAG Extension — Design Decisions
 
-**Status**: Accepted
 **Context**: Extending GroqStockScriptAI with a RAG feature for document Q&A, while keeping the app deployable on Render's free tier.
 
 ---
@@ -35,11 +34,13 @@
 
 ## Decision 3: Vector store — FAISS vs. Chroma
 
-**Decision**: [To be finalized during implementation — see indexer.py]
+**Decision**: FAISS, in-memory, using `DistanceStrategy.COSINE` with normalized embeddings.
 
 **Factors considered**:
 - Chroma has cleaner LangChain integration but pulls in additional dependencies (SQLite backend, ONNX runtime for its default embedding function) that add weight — a concern given the Render free tier constraint.
 - FAISS is lighter for a pure in-memory, single-session use case like this one, with no need for Chroma's persistence or client-server features.
+- Implemented via LangChain's `FAISS.from_documents()`, which also solves the "FAISS has no native metadata" limitation — each vector is wrapped in a `Document` object carrying its source/page/chunk-index metadata, so retrieval results come back with citation information attached, not just raw vectors.
+- Cosine similarity was chosen over the default L2 (Euclidean) distance for semantic search — requires both normalizing embeddings (`normalize_embeddings=True` at embedding time) and explicitly setting `distance_strategy=DistanceStrategy.COSINE` when building the FAISS index, since normalization alone doesn't change FAISS's default ranking metric.
 
 ---
 

@@ -50,11 +50,12 @@ See [ADR-001: RAG Extension Design Decisions](adr_001_rag_extension.md) for the 
 
 ## Constraints Carried From v1
 
-* Credentials (`GROQ_API_KEY`) continue to be read via `os.getenv`, never hardcoded — same pattern, no new secret-handling approach introduced
-* Must remain deployable on Render's free tier
+* Credentials continue to be read via `os.getenv`, never hardcoded — same pattern, no new secret-handling approach introduced. v2 adds one new secret, `HF_TOKEN` (Hugging Face Inference API token, used by `rag/indexer.py` for hosted embeddings), alongside v1's `GROQ_API_KEY`.
+* Must remain deployable on Render's free tier — this constraint directly shaped the embeddings and vector store decisions (see ADR-001)
 
 ## Known Limitations (v2 additions)
 
 * Index is rebuilt from scratch on every app restart/redeploy — no persistence, so startup takes slightly longer
 * Limited to 2 pre-bundled documents for 1 company — not a general-purpose document Q&A tool in this iteration
 * No conversation memory — each question is answered independently, with no awareness of prior questions in the session
+* No relevance gating on retrieval: `retriever.py` always returns its top-3 closest chunks regardless of how relevant they actually are to the question. Out-of-scope handling relies entirely on the prompt instruction in `rag_chain.py` (see ADR-001, Decision 4) rather than a retrieval-level relevance check — a deliberate scope decision, but a real limitation if the model doesn't follow that instruction perfectly. A score-threshold or relevance check would close this gap; tracked as a candidate follow-up, not fixed in this iteration.
