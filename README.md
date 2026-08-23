@@ -15,6 +15,8 @@ Select a stock from a curated list of NSE and US tickers, and get an AI-generate
 
 See [product_architecture.md](product_architecture.md), [product_requirement.md](product_requirement.md), and [technical_doc_v1.md](technical_doc_v1.md) for the full system design, requirements, and build log.
 
+**Known limitation**: `yfinance` is an unofficial client for Yahoo Finance data, and Yahoo occasionally rate-limits requests from shared cloud/hosting IP ranges (like Render's). If Stock Analysis briefly returns a "Couldn't fetch data" or rate-limit error, it's an external Yahoo Finance limitation, not an application bug — retrying after a short wait typically resolves it.
+
 ## Feature 2: Ask the Filing (RAG)
 
 Ask natural-language questions about Reliance Industries' latest quarterly concall transcript and investor presentation, and get answers grounded strictly in those documents, with source + page citations.

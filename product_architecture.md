@@ -61,3 +61,4 @@ Keeping these three concerns in separate files means each can be tested, debugge
 - No live ticker autosuggest/search — a deliberate scope cut for this version.
 - The model has no access to real news/events; its analysis is limited to what numeric data can support.
 - No automated tests currently cover `stock_data.py` or `llm_client.py`.
+- `yfinance` is an unofficial Yahoo Finance client, not a stable public API. Yahoo occasionally rate-limits requests from shared cloud-hosting IP ranges (observed on Render), causing intermittent "Couldn't fetch data" failures unrelated to application logic. No caching or retry mitigation is implemented for this in the current version — accepted as an external dependency risk rather than engineered around, given the project's demo scope.
