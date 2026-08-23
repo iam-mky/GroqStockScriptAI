@@ -64,7 +64,7 @@
 
 ## Decision 6: LLM model change — `llama-3.3-70b-versatile` deprecated by Groq
 
-**Decision**: Switched the model used in both `src/llm_client.py` (Stock Analysis) and `rag/rag_chain.py` (Ask the Filing) from `llama-3.3-70b-versatile` to `openai/gpt-oss-120b`.
+**Decision**: Switched the model used in both `stock/llm_client.py` (Stock Analysis) and `rag/rag_chain.py` (Ask the Filing) from `llama-3.3-70b-versatile` to `openai/gpt-oss-120b`.
 
 **Context**: `llama-3.3-70b-versatile`, used since the original v1 build, stopped being available on Groq — API calls began failing because the model no longer exists on their platform. This affected both features simultaneously, since both share the same underlying Groq client and previously hardcoded the same model name independently in two files.
 
@@ -73,13 +73,13 @@
 - The OpenAI-compatible client architecture (see v1 architecture doc) meant this was a one-line change per call site, not a rework — the abstraction already in place paid off here too.
 - Both call sites needed updating in lockstep, since they were independently hardcoding the same model string rather than sharing a single constant — a minor duplication that made this a two-file fix instead of a one-line one.
 
-**Addendum**: Extracted the model name into a single `MODEL_NAME` constant in `src/llm_client.py`, imported by `rag/rag_chain.py` rather than hardcoded separately. Closes the duplication immediately after it caused friction, instead of carrying it forward as documented debt.
+**Addendum**: Extracted the model name into a single `MODEL_NAME` constant in `stock/llm_client.py`, imported by `rag/rag_chain.py` rather than hardcoded separately. Closes the duplication immediately after it caused friction, instead of carrying it forward as documented debt.
 
 ---
 
 ## Decision 7: Token limit — reducing stock history window from 1 year to 6 months
 
-**Decision**: `src/stock_data.py` now fetches 6 months of daily history (`period="6mo"`) instead of 1 year, to keep prompts sent to `generate_analysis()` under the model's token limit.
+**Decision**: `stock/stock_data.py` now fetches 6 months of daily history (`period="6mo"`) instead of 1 year, to keep prompts sent to `generate_analysis()` under the model's token limit.
 
 **Context**: After switching models (Decision 6), the Stock Analysis feature began failing with a token-limit error — the request was 8012 tokens against an 8000 token cap. The cause: `generate_analysis()` interpolates the raw `stock_data` dict (including the full `recent_history` list) directly into the prompt via an f-string, and a full year of daily records, each repeating full key names in its dict representation, is token-heavy.
 

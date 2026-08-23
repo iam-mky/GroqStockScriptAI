@@ -1,4 +1,4 @@
-from src.llm_client import client, MODEL_NAME
+from stock.llm_client import client, MODEL_NAME
 from rag.retriever import retrieve_relevant_chunks
 
 RAG_SYSTEM_PROMPT = (

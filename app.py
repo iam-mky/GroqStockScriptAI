@@ -1,8 +1,8 @@
 import os
 
 import gradio as gr
-from src.stock_data import get_stock_data
-from src.llm_client import generate_analysis
+from stock.stock_data import get_stock_data
+from stock.llm_client import generate_analysis
 from rag.loader import loadpdf_and_chunks
 from rag.indexer import initialize_vector_store
 from rag.rag_chain import answer_question

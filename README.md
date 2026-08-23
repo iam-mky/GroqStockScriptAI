@@ -9,8 +9,8 @@ Select a stock from a curated list of NSE and US tickers, and get an AI-generate
 ![Stock Analysis feature screenshot](assets/StockAnalysis.png)
 
 1. User selects a stock from the dropdown (5 NSE + 4 US tickers).
-2. `src/stock_data.py` fetches live price, volume, P/E ratio, and the last 6 months of daily history via `yfinance`.
-3. That structured data is injected into a prompt sent to a Groq-hosted model (currently `openai/gpt-oss-120b`, accessed through the OpenAI-compatible API) in `src/llm_client.py`.
+2. `stock/stock_data.py` fetches live price, volume, P/E ratio, and the last 6 months of daily history via `yfinance`.
+3. That structured data is injected into a prompt sent to a Groq-hosted model (currently `openai/gpt-oss-120b`, accessed through the OpenAI-compatible API) in `stock/llm_client.py`.
 4. The model returns a data-grounded market summary, displayed in the Gradio UI.
 
 See [product_architecture.md](product_architecture.md), [product_requirement.md](product_requirement.md), and [technical_doc_v1.md](technical_doc_v1.md) for the full system design, requirements, and build log.

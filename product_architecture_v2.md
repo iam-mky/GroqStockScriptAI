@@ -1,6 +1,6 @@
 # Product Architecture v2: "Ask the Filing" — RAG Extension
 
-This document extends [product_architecture.md](product_architecture.md) (v1). v1's modules (`app.py`, `src/stock_data.py`, `src/llm_client.py`) are unchanged and continue to serve the stock-summary feature. This document covers the new `rag/` package only.
+This document extends [product_architecture.md](product_architecture.md) (v1). v1's modules (`app.py`, `stock/stock_data.py`, `stock/llm_client.py`) are unchanged and continue to serve the stock-summary feature. This document covers the new `rag/` package only.
 
 ## High-Level Overview
 

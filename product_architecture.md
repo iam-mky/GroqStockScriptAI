@@ -10,7 +10,7 @@ GroqStockScriptAI is an open-source application that helps users summarize a sto
 [User selects stock from dropdown]
               │
               ▼
-   [src/stock_data.py: yfinance]
+   [stock/stock_data.py: yfinance]
    fetches price, volume, P/E ratio,
    and recent daily history
               │
@@ -18,7 +18,7 @@ GroqStockScriptAI is an open-source application that helps users summarize a sto
    [Structured dict: Context Injection]
               │
               ▼
-  [src/llm_client.py: Groq API]
+  [stock/llm_client.py: Groq API]
   Llama 3.3 70B via OpenAI-compatible
   client, temperature = 0.2
               │
@@ -31,8 +31,8 @@ GroqStockScriptAI is an open-source application that helps users summarize a sto
 | Module | Responsibility |
 |---|---|
 | `app.py` | UI layout, event wiring, entry point; also binds to Render's dynamic `PORT`/host for deployment |
-| `src/stock_data.py` | Pure data-ingestion layer — calls yfinance, returns a structured dict, isolated from UI/LLM concerns |
-| `src/llm_client.py` | LLM client setup and prompt construction — isolated so the model/provider can be swapped independently of the rest of the app |
+| `stock/stock_data.py` | Pure data-ingestion layer — calls yfinance, returns a structured dict, isolated from UI/LLM concerns |
+| `stock/llm_client.py` | LLM client setup and prompt construction — isolated so the model/provider can be swapped independently of the rest of the app |
 
 Keeping these three concerns in separate files means each can be tested, debugged, or replaced independently — e.g., swapping the LLM provider only touches `llm_client.py`, and swapping the data source only touches `stock_data.py`.
 

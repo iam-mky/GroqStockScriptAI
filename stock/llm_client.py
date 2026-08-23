@@ -9,7 +9,7 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1",
 )
 
-# Shared across src/llm_client.py and rag/rag_chain.py — single source of truth
+# Shared across stock/llm_client.py and rag/rag_chain.py — single source of truth
 # for which Groq-hosted model both features call. Update here only.
 MODEL_NAME = "openai/gpt-oss-120b"
 
