@@ -1,4 +1,4 @@
-from src.llm_client import client
+from src.llm_client import client, MODEL_NAME
 from rag.retriever import retrieve_relevant_chunks
 
 RAG_SYSTEM_PROMPT = (
@@ -27,7 +27,7 @@ def answer_question(vector_store, question: str, k: int = 3) -> dict:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": RAG_SYSTEM_PROMPT},
                 {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},

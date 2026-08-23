@@ -9,6 +9,10 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1",
 )
 
+# Shared across src/llm_client.py and rag/rag_chain.py — single source of truth
+# for which Groq-hosted model both features call. Update here only.
+MODEL_NAME = "openai/gpt-oss-120b"
+
 system_prompt = (
     "You are the world's best stock market analyst. Analyse the stock for the given ticker and its data. "
     "Base your analysis strictly on the numeric data provided (price, volume, P/E, recent history trend) "
@@ -21,7 +25,7 @@ system_prompt = (
 def generate_analysis(stock_data:dict):
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=MODEL_NAME,
             messages= [
                 {"role":"system", "content": system_prompt},
                 {"role":"user", "content": f"Analyze the stock: {stock_data}"}

@@ -4,11 +4,13 @@ An AI-powered stock research dashboard with two features: a live market summary 
 
 ## Feature 1: Stock Analysis
 
-Select a stock from a curated list of NSE and US tickers, and get an AI-generated market summary built from live data pulled via `yfinance` and analyzed by Llama 3.3 70B (served via the Groq API).
+Select a stock from a curated list of NSE and US tickers, and get an AI-generated market summary built from live data pulled via `yfinance` and analyzed by Groq.
+
+![Stock Analysis feature screenshot](assets/StockAnalysis.png)
 
 1. User selects a stock from the dropdown (5 NSE + 4 US tickers).
-2. `src/stock_data.py` fetches live price, volume, P/E ratio, and recent daily history via `yfinance`.
-3. That structured data is injected into a prompt sent to Groq's Llama 3.3 70B model (accessed through the OpenAI-compatible API) in `src/llm_client.py`.
+2. `src/stock_data.py` fetches live price, volume, P/E ratio, and the last 6 months of daily history via `yfinance`.
+3. That structured data is injected into a prompt sent to a Groq-hosted model (currently `openai/gpt-oss-120b`, accessed through the OpenAI-compatible API) in `src/llm_client.py`.
 4. The model returns a data-grounded market summary, displayed in the Gradio UI.
 
 See [product_architecture.md](product_architecture.md), [product_requirement.md](product_requirement.md), and [technical_doc_v1.md](technical_doc_v1.md) for the full system design, requirements, and build log.
@@ -16,6 +18,8 @@ See [product_architecture.md](product_architecture.md), [product_requirement.md]
 ## Feature 2: Ask the Filing (RAG)
 
 Ask natural-language questions about Reliance Industries' latest quarterly concall transcript and investor presentation, and get answers grounded strictly in those documents, with source + page citations.
+
+![Ask the Filing feature screenshot](assets/AskTheFiling.png)
 
 1. On app startup, `rag/loader.py` loads and chunks the bundled PDFs (500 char chunks, 50 char overlap).
 2. `rag/indexer.py` embeds the chunks (via Hugging Face's hosted Inference API) and builds an in-memory FAISS vector index.

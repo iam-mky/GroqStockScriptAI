@@ -59,9 +59,19 @@ This part was genuinely smooth — the whole point of keeping v1's `app.py`, `st
 
 The first deploy failed exactly as described in Step 2 — memory, not code, was the problem. After switching to the hosted embedding API, the app deployed cleanly: no local model to load, a much smaller memory footprint, and a fast startup.
 
+## Step 8: A model I didn't touch stopped working
+
+After both features were live, Stock Analysis and Ask the Filing started failing at the same time, with no code changes on my end. The cause: `llama-3.3-70b-versatile`, the model both features had been calling since v1, was no longer available on Groq. An external dependency changed underneath a working system — nothing about my code was wrong the day before.
+
+Because I'd used an OpenAI-compatible client (a v1 decision, made for a different reason — provider flexibility) rather than Groq's own SDK, switching models was a one-line change per call site: swap the `model` string to `openai/gpt-oss-120b`. Both `llm_client.py` and `rag_chain.py` needed the same fix, since each had independently hardcoded the same model name — a small duplication that made this a two-file fix instead of a one-line one, worth cleaning up later by sharing a single model constant.
+
+Fixing this surfaced a second, unrelated problem: Stock Analysis started failing again immediately, this time with a token-limit error — 8012 tokens requested against an 8000 cap. `generate_analysis()` builds its prompt by dropping the entire `stock_data` dict into an f-string, and `recent_history` was a full year of daily records, each one repeating full key names in its raw dict form. That's a lot of tokens spent on a granularity the summary probably didn't need. Reducing the fetch window from 1 year to 6 months (`stock_data.py`) brought the prompt comfortably under the limit — a smaller, more urgent version of a scoping decision I'd already made once before (the hardcoded ticker list in v1): send the model less, not more, when more isn't actually helping.
+
 ## What I'd do differently next time
 
 I'd test the memory-heavy dependency against the actual free-tier hosting environment *before* building the rest of the pipeline around it, rather than after. The architecture decision log correctly predicted the risk, but I still built the full local pipeline first and only discovered the failure at deploy time. Testing that one risky piece in isolation, early, would have caught this a step sooner.
+
+The model-name duplication I noticed here didn't stay a "next time" item — I fixed it right after: pulled `MODEL_NAME` into a single constant in `llm_client.py`, imported wherever it's needed. Cheap to fix immediately, and exactly the kind of small debt that gets expensive if it's left for "later" and the next provider change happens under real time pressure.
 
 ## Key takeaways
 
@@ -69,3 +79,4 @@ I'd test the memory-heavy dependency against the actual free-tier hosting enviro
 - Citations in a RAG system aren't a separate feature — they come from carrying metadata alongside your data from the very first step, and telling the model to use it.
 - Free-tier cloud hosting has real constraints that don't show up in local development — writing down your risky assumptions before you build (not just once something breaks) is what makes debugging fast instead of stressful.
 - The same anti-hallucination principle applies everywhere you use an LLM: it will confidently answer beyond what it actually knows unless you explicitly constrain what it's allowed to claim.
+- Provider abstraction pays off even when you didn't build it for the reason it ends up mattering — an OpenAI-compatible client made a surprise model deprecation a one-line fix instead of a rewrite.

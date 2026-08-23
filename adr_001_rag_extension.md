@@ -59,3 +59,31 @@
 **Decision**: v1's PRD and architecture docs remain untouched; this extension gets its own `_v2` documents plus this ADR, rather than rewriting v1 in place.
 
 **Factors considered**: Preserves the historical record of what v1 actually was and why those decisions were made, rather than overwriting them — useful both for the reader (shows iteration over time) and for the author (avoids losing the reasoning behind earlier, still-valid decisions).
+
+---
+
+## Decision 6: LLM model change — `llama-3.3-70b-versatile` deprecated by Groq
+
+**Decision**: Switched the model used in both `src/llm_client.py` (Stock Analysis) and `rag/rag_chain.py` (Ask the Filing) from `llama-3.3-70b-versatile` to `openai/gpt-oss-120b`.
+
+**Context**: `llama-3.3-70b-versatile`, used since the original v1 build, stopped being available on Groq — API calls began failing because the model no longer exists on their platform. This affected both features simultaneously, since both share the same underlying Groq client and previously hardcoded the same model name independently in two files.
+
+**Factors considered**:
+- This is an external dependency risk distinct from the earlier hosting-platform pivot (Decision 2's addendum) — model availability on a provider can change without notice, the same way pricing/tier structure can.
+- The OpenAI-compatible client architecture (see v1 architecture doc) meant this was a one-line change per call site, not a rework — the abstraction already in place paid off here too.
+- Both call sites needed updating in lockstep, since they were independently hardcoding the same model string rather than sharing a single constant — a minor duplication that made this a two-file fix instead of a one-line one.
+
+**Addendum**: Extracted the model name into a single `MODEL_NAME` constant in `src/llm_client.py`, imported by `rag/rag_chain.py` rather than hardcoded separately. Closes the duplication immediately after it caused friction, instead of carrying it forward as documented debt.
+
+---
+
+## Decision 7: Token limit — reducing stock history window from 1 year to 6 months
+
+**Decision**: `src/stock_data.py` now fetches 6 months of daily history (`period="6mo"`) instead of 1 year, to keep prompts sent to `generate_analysis()` under the model's token limit.
+
+**Context**: After switching models (Decision 6), the Stock Analysis feature began failing with a token-limit error — the request was 8012 tokens against an 8000 token cap. The cause: `generate_analysis()` interpolates the raw `stock_data` dict (including the full `recent_history` list) directly into the prompt via an f-string, and a full year of daily records, each repeating full key names in its dict representation, is token-heavy.
+
+**Factors considered**:
+- Reducing the fetched history window (6 months instead of 1 year) is the simplest fix, directly addressing the token count at the source rather than adding prompt-formatting complexity.
+- A full year of raw daily closes likely wasn't improving analysis quality proportionally to its token cost — 6 months of trend data is still enough for the model to describe recent patterns.
+- Alternative considered: summarizing history into aggregate statistics (start/end price, high/low, % change) instead of raw daily records, which would be more token-efficient still — not implemented in this pass since reducing the window alone was sufficient to get comfortably under the limit; may be revisited if token pressure returns as more features are added to the shared prompt.
